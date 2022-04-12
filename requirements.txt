@@ -1,0 +1,7 @@
+wandb
+torch
+torchvision
+timm
+torchdistill
+pytorch-lightning
+torchmetrics
