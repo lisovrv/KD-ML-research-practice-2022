@@ -1,9 +1,13 @@
+import os
+import sys
+
 import torch.nn.functional as F
 
 # For imports from common
 # TODO: is there a better way?
-import os, sys; sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))  # noqa
-from common import Experiment, CIFAR100_Mixin, AdamWOneCycleLRMixin, ModelCheckpointMixin, Accuracy, resnet18
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))  # noqa
+
+from common import Accuracy, AdamWOneCycleLRMixin, CIFAR100_Mixin, Experiment, ModelCheckpointMixin, resnet18
 
 
 class CrossEntropyExperiment(Experiment, CIFAR100_Mixin, AdamWOneCycleLRMixin, ModelCheckpointMixin):
@@ -11,6 +15,7 @@ class CrossEntropyExperiment(Experiment, CIFAR100_Mixin, AdamWOneCycleLRMixin, M
             self,
             experiment_name: str = "cross_entropy",
             wandb_project: str = "kd-cifar100-resnet18",
+            artifacts_base: str = "./artifacts",
             batch_size: int = 1024,
             epochs: int = 50,
             lr: float = 1e-3,
@@ -27,7 +32,7 @@ class CrossEntropyExperiment(Experiment, CIFAR100_Mixin, AdamWOneCycleLRMixin, M
 
     def training_step(self, batch, batch_idx):
         image, target = batch
-        output = self(image)
+        output = self.model(image)
 
         loss = F.cross_entropy(output, target)
         self.log("loss", loss)

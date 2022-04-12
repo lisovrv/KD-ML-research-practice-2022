@@ -102,6 +102,6 @@ class ModelCheckpointMixin(LightningModule):
     @property
     def artifacts_path(self):
         if self._artifacts_path is None:
-            self._artifacts_path = os.path.join("./artifacts", self.hparams.experiment_name)
+            self._artifacts_path = os.path.join(self.hparams.artifacts_base, self.hparams.experiment_name)
 
         return self._artifacts_path
