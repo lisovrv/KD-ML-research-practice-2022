@@ -18,7 +18,7 @@ pd.set_option('max_columns', None)
 REPO_NAME = "chenyaofo/pytorch-cifar-models"
 TEACHER_MODEL = "cifar100_resnet56"
 STUDENT_MODEL = "cifar100_resnet20"
-BATCH_SIZE = 1024 *
+BATCH_SIZE = 2048
 NUM_WORKERS = multiprocessing.cpu_count() - 1
 NUM_EPOCHS = 500
 SCHEDULER_STEP = 100
@@ -170,9 +170,9 @@ if __name__ == "__main__":
     dataset_test = torchvision.datasets.CIFAR100(root="/tmp", train=False, transform=transform, download=True)
 
     loader_train = data.DataLoader(dataset=dataset_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-    loader_test = data.DataLoader(dataset=dataset_train, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, test=True)
+    loader_test = data.DataLoader(dataset=dataset_train, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
-    teacher = provider.get_model_by_name(TEACHER_MODEL).to(device=device)
+    teacher = provider.get_model_by_name(TEACHER_MODEL, pretrained=False).to(device=device)
     student_pretrained = provider.get_model_by_name(STUDENT_MODEL).to(device=device)
     teacher.eval()
 
@@ -187,13 +187,17 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------------
     optimizer_distil = optim.AdamW(student_for_distillation.parameters(), lr=1e-4, weight_decay=0.01)
     optimizer_train = optim.AdamW(student_for_training.parameters(), lr=1e-4, weight_decay=0.01)
+    optimizer_teacher = optim.AdamW(teacher.parameters(), lr=1e-4, weight_decay=0.01)
     # sheduler_distil = optim.lr_scheduler.StepLR(optimizer=optimizer_distil, step_size=SCHEDULER_STEP, gamma=0.3)
     # sheduler_train = optim.lr_scheduler.StepLR(optimizer=optimizer_train, step_size=SCHEDULER_STEP, gamma=0.3)
-    sheduler_distil = lr_scheduler.OneCycleLR(
-        optimizer=optimizer_distil, max_lr=1e-3, epochs=NUM_EPOCHS, steps_per_epoch=len(loader_train)
+    scheduler_distil = lr_scheduler.OneCycleLR(
+        optimizer=optimizer_distil, max_lr=1e-3, epochs=NUM_EPOCHS, steps_per_epoch=len(loader_train), final_div_factor=1000
     )
-    sheduler_train = lr_scheduler.OneCycleLR(
-        optimizer=optimizer_train, max_lr=1e-3, epochs=NUM_EPOCHS, steps_per_epoch=len(loader_train)
+    scheduler_train = lr_scheduler.OneCycleLR(
+        optimizer=optimizer_train, max_lr=1e-3, epochs=NUM_EPOCHS, steps_per_epoch=len(loader_train), final_div_factor=1000
+    )
+    scheduler_teacher  = lr_scheduler.OneCycleLR(
+        optimizer=optimizer_teacher, max_lr=1e-3, epochs=NUM_EPOCHS, steps_per_epoch=len(loader_train), final_div_factor=1000
     )
 
     train_loss_function = CrossEntropyLoss()
@@ -210,25 +214,35 @@ if __name__ == "__main__":
     }
 
     for epoch in trange(NUM_EPOCHS):
+        teacher_train_loss, teacher_train_accuracy = runner.train_model(
+            teacher, loss_function=train_loss_function, optimizer=optimizer_teacher, oclr=scheduler_teacher
+        )
+        teacher_valid_accuracy = runner.validate_model(student_for_training)
 
         train_loss_simple, train_accuracy_simple = runner.train_model(
-            student_for_training, loss_function=train_loss_function, optimizer=optimizer_train, oclr=sheduler_train
+            student_for_training, loss_function=train_loss_function, optimizer=optimizer_train, oclr=scheduler_train
         )
         valid_accuracy_simple = runner.validate_model(student_for_training)
 
         train_loss_distil, train_accuracy_distil = runner.train_model(
-            student_for_distillation, loss_function=distillation_loss_function, optimizer=optimizer_distil, oclr=sheduler_distil
+            student_for_distillation, loss_function=distillation_loss_function, optimizer=optimizer_distil, oclr=scheduler_distil
         )
         valid_accuracy_distil = runner.validate_model(student_for_distillation)
 
         results['epoch'].append(epoch)
+
+        results['teacher_train_loss'] = teacher_train_loss
+        results['teacher_train_accuracy'] = teacher_train_accuracy
+        results['teacher_valid_accuracy'] = teacher_valid_accuracy
+
         results['train_accuracy_simple'].append(train_accuracy_simple)
         results['train_loss_simple'].append(train_loss_simple)
         results['valid_accuracy_simple'].append(valid_accuracy_simple)
+
         results['train_accuracy_distil'].append(train_accuracy_distil)
         results['train_loss_distil'].append(train_loss_distil)
         results['valid_accuracy_distil'].append(valid_accuracy_distil)
 
         results_df = pd.DataFrame.from_dict(results)
         print(results_df)
-        results_df.to_csv(str(LOGS_DIR / f"{start_time}_{TEACHER_MODEL}_{STUDENT_MODEL}_{ALPHA}_{T}.csv"))z
+        results_df.to_csv(str(LOGS_DIR / f"{start_time}_{TEACHER_MODEL}_{STUDENT_MODEL}_{ALPHA}_{T}.csv"))
