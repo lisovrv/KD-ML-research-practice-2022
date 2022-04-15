@@ -170,7 +170,7 @@ if __name__ == "__main__":
     dataset_test = torchvision.datasets.CIFAR100(root="/tmp", train=False, transform=transform, download=True)
 
     loader_train = data.DataLoader(dataset=dataset_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-    loader_test = data.DataLoader(dataset=dataset_train, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+    loader_test = data.DataLoader(dataset=dataset_train, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, test=True)
 
     teacher = provider.get_model_by_name(TEACHER_MODEL).to(device=device)
     student_pretrained = provider.get_model_by_name(STUDENT_MODEL).to(device=device)
@@ -231,4 +231,4 @@ if __name__ == "__main__":
 
         results_df = pd.DataFrame.from_dict(results)
         print(results_df)
-        results_df.to_csv(str(LOGS_DIR / f"{start_time}_{TEACHER_MODEL}_{STUDENT_MODEL}_{ALPHA}_{T}.csv"))
+        results_df.to_csv(str(LOGS_DIR / f"{start_time}_{TEACHER_MODEL}_{STUDENT_MODEL}_{ALPHA}_{T}.csv"))z
