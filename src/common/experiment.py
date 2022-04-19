@@ -3,12 +3,13 @@ import shutil
 from argparse import ArgumentParser
 from inspect import getfullargspec
 from typing import Any, Type
-from .typing_utils import is_optional, get_args
 
 import torch
 import wandb
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import WandbLogger
+
+from .typing_utils import get_args, is_optional
 
 
 class ExperimentArgumentParser(ArgumentParser):
