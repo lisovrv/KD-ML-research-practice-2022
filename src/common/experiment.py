@@ -2,11 +2,56 @@ import os
 import shutil
 from argparse import ArgumentParser
 from inspect import getfullargspec
+from typing import Any, Type
+from .typing_utils import is_optional, get_args
 
 import torch
 import wandb
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import WandbLogger
+
+
+class ExperimentArgumentParser(ArgumentParser):
+    def __init__(self, experiment_class: Type["Experiment"]):
+        super().__init__()
+        # special thanks to https://linuxtut.com/en/1b2e76f3bfd18dcc1975/
+        argspec = getfullargspec(experiment_class.__init__)
+        args = argspec.args[1:]  # skip self
+        defaults = argspec.defaults
+        annotations = argspec.annotations
+
+        assert len(args) == len(defaults)
+
+        arg_types = {}  # maps argument name to its type
+        arg_defaults = {}  # maps argument name to its default value
+        for arg, default in zip(args, defaults):
+            arg_defaults[arg] = default
+
+            # infer argument type from annotations or default value
+            arg_type = type(default)
+            if arg in annotations:
+                arg_type = annotations[arg]
+
+                # special case of Optional arguments
+                if is_optional(arg_type):
+                    arg_type = get_args(arg_type)[0]
+
+            arg_types[arg] = arg_type
+
+        for arg in args:
+            if arg_types[arg] is bool:
+                self.add_bool_argument(arg, arg_defaults[arg])
+            else:
+                self.add_other_argument(arg, arg_types[arg], arg_defaults[arg])
+
+    def add_bool_argument(self, arg: str, default: bool) -> None:
+        if default is True:
+            self.add_argument("--disable_" + arg, dest=arg, default=True, action="store_false")
+        else:
+            self.add_argument("--enable_" + arg, dest=arg, default=False, action="store_true")
+
+    def add_other_argument(self, arg: str, type_: Type, default: Any) -> None:
+        self.add_argument("--" + arg, type=type_, default=default)
 
 
 class Experiment(LightningModule):
@@ -15,29 +60,8 @@ class Experiment(LightningModule):
     """
 
     @classmethod
-    def get_parser(cls):
-        # special thanks to https://linuxtut.com/en/1b2e76f3bfd18dcc1975/
-        args, _, _, defaults, _, _, _, = getfullargspec(cls.__init__)
-        args = args[1:]  # skip self
-        assert len(args) == len(defaults)
-
-        parser = ArgumentParser()
-        for arg, default in zip(args, defaults):
-            if type(default) is not bool:
-                parser.add_argument("--" + arg.replace("_", "-"), type=type(default), default=default)
-                continue
-
-            # special case for boolean arguments
-            if default is True:
-                parser.add_argument("--disable-" + arg.replace("_", "-"), dest=arg, default=True, action="store_false")
-            else:
-                parser.add_argument("--enable-" + arg.replace("_", "-"), dest=arg, default=False, action="store_true")
-
-        return parser
-
-    @classmethod
     def main(cls):
-        parser = cls.get_parser()
+        parser = ExperimentArgumentParser(cls)
         args = parser.parse_args()
         experiment = cls(**vars(args))
         experiment.run()
