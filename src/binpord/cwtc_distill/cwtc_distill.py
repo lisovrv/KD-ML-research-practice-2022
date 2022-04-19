@@ -9,14 +9,7 @@ import torch.nn as nn
 # TODO: is there a better way?
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
-from common import (  # noqa: E402
-    Accuracy,
-    AdamWOneCycleLRMixin,
-    CIFAR100_Mixin,
-    Experiment,
-    ModelCheckpointMixin,
-    resnet18,
-)
+from common import Accuracy, DataMixin, Experiment, ModelCheckpointMixin, OptimizerMixin, resnet18  # noqa: E402
 
 
 class CWTCLoss:
@@ -46,16 +39,16 @@ class CWTCLoss:
         return (weights * element_wise_loss).sum()
 
 
-class CWTCDistillExperiment(Experiment, CIFAR100_Mixin, AdamWOneCycleLRMixin, ModelCheckpointMixin):
+class CWTCDistillExperiment(Experiment, DataMixin, OptimizerMixin, ModelCheckpointMixin):
     def __init__(
         self,
         experiment_name: str = "cwtc_distill",
         wandb_project: str = "kd-cifar100-resnet18",
-        artifacts_base: str = "./artifacts",
         teacher_checkpoint: Optional[str] = None,
-        batch_size: int = 1024,
         epochs: int = 50,
-        lr: float = 1e-3,
+        optimizer: str = "adamw",
+        lr_scheduler: str = "one_cycle_lr",
+        lr: float = 0.001,
         weight_decay: float = 0.01,
     ):
         super().__init__()

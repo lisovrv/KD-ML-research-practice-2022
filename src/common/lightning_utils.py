@@ -28,23 +28,35 @@ class Accuracy(Metric):
         return self.correct.float() / self.total
 
 
-class CIFAR100_Mixin(LightningModule):  # noqa, _ is to distinguish number from Mixin
+class DataMixin(LightningModule):
     def __init__(self):
         super().__init__()
         self._train_dataloader = None
         self._val_dataloader = None
 
+    @property
+    def dataset(self):
+        return self.hparams.get("dataset", "cifar100")
+
+    @property
+    def batch_size(self):
+        return self.hparams.get("batch_size", 1024)
+
     def train_dataloader(self):
         if self._train_dataloader is None:
-            train_data = CIFAR100(
-                root="data",
-                train=True,
-                transform=ToTensor(),
-                download=True,
-            )
+            if self.dataset == "cifar100":
+                train_data = CIFAR100(
+                    root="data",
+                    train=True,
+                    transform=ToTensor(),
+                    download=True,
+                )
+            else:
+                raise ValueError(f"unsupported dataset {self.dataset}")
+
             self._train_dataloader = DataLoader(
                 train_data,
-                self.hparams.batch_size,
+                self.batch_size,
                 shuffle=True,
             )
 
@@ -52,43 +64,71 @@ class CIFAR100_Mixin(LightningModule):  # noqa, _ is to distinguish number from 
 
     def val_dataloader(self):
         if self._val_dataloader is None:
-            val_data = CIFAR100(
-                root="data",
-                train=False,
-                transform=ToTensor(),
-                download=True,
-            )
+            if self.dataset == "cifar100":
+                val_data = CIFAR100(
+                    root="data",
+                    train=False,
+                    transform=ToTensor(),
+                    download=True,
+                )
+            else:
+                raise ValueError(f"unsupported dataset {self.dataset}")
+
             self._val_dataloader = DataLoader(
                 val_data,
-                self.hparams.batch_size,
+                self.batch_size,
                 shuffle=False,
             )
 
         return self._val_dataloader
 
 
-class AdamWOneCycleLRMixin(LightningModule):
+class OptimizerMixin(LightningModule):
+    @property
+    def lr(self):
+        return self.hparams.get("lr", 0.001)
+
+    @property
+    def weight_decay(self):
+        return self.hparams.get("weight_decay", 0.01)
+
+    @property
+    def epochs(self):
+        return self.hparams.get("epochs", 50)
+
+    @property
+    def optimizer(self):
+        return self.hparams.get("optimizer", "adam")
+
+    @property
+    def lr_scheduler(self):
+        return self.hparams.get("lr_scheduler", None)
+
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(
-            self.parameters(),
-            lr=self.hparams.lr,
-            weight_decay=self.hparams.weight_decay,
-        )
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer,
-            self.hparams.lr,
-            steps_per_epoch=len(self.train_dataloader()),
-            epochs=self.hparams.epochs,
-        )
-        lr_scheduler = {"scheduler": scheduler, "interval": "step"}
+        if self.optimizer == "adam":
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        elif self.optimizer == "adamw":
+            optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        else:
+            raise ValueError(f"unsupported optimizer {self.optimizer}")
+
+        if self.lr_scheduler is None:
+            return optimizer
+        elif self.lr_scheduler == "one_cycle_lr":
+            lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+                optimizer,
+                self.lr,
+                steps_per_epoch=len(self.train_dataloader()),
+                epochs=self.epochs,
+            )
+            lr_scheduler = {"scheduler": lr_scheduler, "interval": "step"}
+        else:
+            raise ValueError(f"unsupported lr scheduler {self.lr_scheduler}")
+
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
 
 class ModelCheckpointMixin(LightningModule):
-    def __init__(self):
-        super().__init__()
-        self._artifacts_path = None
-
     def configure_callbacks(self):
         return ModelCheckpoint(
             self.artifacts_path,
@@ -101,7 +141,5 @@ class ModelCheckpointMixin(LightningModule):
 
     @property
     def artifacts_path(self):
-        if self._artifacts_path is None:
-            self._artifacts_path = os.path.join(self.hparams.artifacts_base, self.hparams.experiment_name)
-
-        return self._artifacts_path
+        artifacts_base = self.hparams.get("artifacts_base", "./artifacts")
+        return os.path.join(artifacts_base, self.experiment_name)

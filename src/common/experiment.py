@@ -60,6 +60,14 @@ class Experiment(LightningModule):
     Main class. All experiments should inherit from it.
     """
 
+    @property
+    def experiment_name(self):
+        return self.hparams.get("experiment_name", "experiment")
+
+    @property
+    def wandb_project(self):
+        return self.hparams.get("wandb_project", "project")
+
     @classmethod
     def main(cls):
         parser = ExperimentArgumentParser(cls)
@@ -72,12 +80,12 @@ class Experiment(LightningModule):
             shutil.rmtree(self.artifacts_path)
             os.mkdir(self.artifacts_path)
 
-        logger = WandbLogger(name=self.hparams.experiment_name, project=self.hparams.wandb_project)
+        logger = WandbLogger(name=self.experiment_name, project=self.wandb_project)
         trainer = Trainer(
             logger,
             gpus=int(torch.cuda.is_available()),
             auto_lr_find=True,
-            max_epochs=self.hparams.epochs,
+            max_epochs=self.epochs,
             log_every_n_steps=log_every_n_steps,
         )
         trainer.fit(self)
