@@ -1,7 +1,5 @@
 import typing
-
 from typing import Type, Union
-
 
 NoneType = type(None)
 
@@ -10,6 +8,7 @@ NoneType = type(None)
 # Unfortunately, Google Colab runs Python 3.7, in which there are no such functions.
 # So I followed https://stackoverflow.com/a/50101934/7280039 and implemented these
 # functions myself.
+
 
 def get_origin(type_: Type):
     if hasattr(typing, "get_origin"):

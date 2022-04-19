@@ -4,7 +4,12 @@ import timm
 import torch
 
 
-def create_model(model_name: str, num_classes: int = 100, checkpoint_path: Optional[str] = None, freeze: bool = False):
+def create_model(
+    model_name: str,
+    num_classes: int = 100,
+    checkpoint_path: Optional[str] = None,
+    freeze: bool = False,
+):
     model = timm.create_model(model_name, pretrained=False, num_classes=num_classes)
     if checkpoint_path is not None:
         model.load_state_dict(torch.load(checkpoint_path))
