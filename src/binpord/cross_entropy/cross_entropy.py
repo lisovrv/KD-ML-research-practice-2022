@@ -7,25 +7,18 @@ import torch.nn.functional as F
 # TODO: is there a better way?
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))  # noqa
 
-from common import (  # noqa: E402
-    Accuracy,
-    AdamWOneCycleLRMixin,
-    CIFAR100_Mixin,
-    Experiment,
-    ModelCheckpointMixin,
-    resnet18,
-)
+from common import Accuracy, Experiment, resnet18  # noqa: E402
 
 
-class CrossEntropyExperiment(Experiment, CIFAR100_Mixin, AdamWOneCycleLRMixin, ModelCheckpointMixin):
+class CrossEntropyExperiment(Experiment):
     def __init__(
         self,
         experiment_name: str = "cross_entropy",
         wandb_project: str = "kd-cifar100-resnet18",
-        artifacts_base: str = "./artifacts",
-        batch_size: int = 1024,
         epochs: int = 50,
-        lr: float = 1e-3,
+        optimizer: str = "adamw",
+        lr_scheduler: str = "one_cycle_lr",
+        lr: float = 0.001,
         weight_decay: float = 0.01,
     ):
         super().__init__()
