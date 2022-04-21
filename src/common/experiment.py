@@ -11,7 +11,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR100
-from torchvision.transforms import ToTensor
+from torchvision.transforms import Compose, Normalize, ToTensor
 
 from .typing_utils import get_args, is_optional
 
@@ -108,10 +108,16 @@ class Experiment(LightningModule):
     def train_dataloader(self):
         if self._train_dataloader is None:
             if self.dataset == "cifar100":
+                transform = Compose(
+                    [
+                        ToTensor(),
+                        Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+                    ]
+                )
                 train_data = CIFAR100(
                     root="data",
                     train=True,
-                    transform=ToTensor(),
+                    transform=transform,
                     download=True,
                 )
             else:
@@ -128,10 +134,16 @@ class Experiment(LightningModule):
     def val_dataloader(self):
         if self._val_dataloader is None:
             if self.dataset == "cifar100":
+                transform = Compose(
+                    [
+                        ToTensor(),
+                        Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+                    ]
+                )
                 val_data = CIFAR100(
                     root="data",
                     train=False,
-                    transform=ToTensor(),
+                    transform=transform,
                     download=True,
                 )
             else:
