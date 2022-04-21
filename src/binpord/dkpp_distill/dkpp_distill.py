@@ -67,6 +67,7 @@ class DKPPDistillExperiment(Experiment):
         temperature: float = 4.0,
         persistent_permutation: bool = True,
         teacher_checkpoint: Optional[str] = None,
+        dataset: str = "cifar100",
         epochs: int = 50,
         optimizer: str = "adamw",
         lr_scheduler: str = "one_cycle_lr",
@@ -76,8 +77,8 @@ class DKPPDistillExperiment(Experiment):
         super().__init__()
         self.save_hyperparameters()
 
-        self.student_model = resnet18()
-        self.teacher_model = resnet18(checkpoint_path=teacher_checkpoint, freeze=True)
+        self.student_model = resnet18(self.num_classes, self.in_channels)
+        self.teacher_model = resnet18(self.num_classes, self.in_channels, checkpoint_path=teacher_checkpoint)
         self.criterion = DKPPLoss(temperature, persistent_permutation)
 
         self.train_acc = Accuracy()
