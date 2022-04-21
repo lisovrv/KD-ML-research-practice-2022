@@ -7,10 +7,11 @@ import torch
 def create_model(
     model_name: str,
     num_classes: int = 100,
+    in_channels: int = 3,
     checkpoint_path: Optional[str] = None,
     freeze: bool = False,
 ):
-    model = timm.create_model(model_name, pretrained=False, num_classes=num_classes)
+    model = timm.create_model(model_name, pretrained=False, num_classes=num_classes, in_chans=in_channels)
     if checkpoint_path is not None:
         model.load_state_dict(torch.load(checkpoint_path))
 
@@ -23,5 +24,5 @@ def create_model(
     return model
 
 
-def resnet18(num_classes: int = 100, checkpoint_path: Optional[str] = None, freeze: bool = False):
-    return create_model("resnet18", num_classes, checkpoint_path, freeze)
+def resnet18(num_classes: int = 100, in_channels: int = 3, checkpoint_path: Optional[str] = None, freeze: bool = False):
+    return create_model("resnet18", num_classes, in_channels, checkpoint_path, freeze)

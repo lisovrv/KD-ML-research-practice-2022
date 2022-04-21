@@ -19,6 +19,7 @@ class HintonDistillExperiment(Experiment):
         artifacts_base: str = "./artifacts",
         temperature: float = 4.0,
         teacher_checkpoint: Optional[str] = None,
+        dataset: str = "cifar100",
         epochs: int = 50,
         optimizer: str = "adamw",
         lr_scheduler: str = "one_cycle_lr",
@@ -28,8 +29,10 @@ class HintonDistillExperiment(Experiment):
         super().__init__()
         self.save_hyperparameters()
 
-        self.student_model = resnet18()
-        self.teacher_model = resnet18(checkpoint_path=teacher_checkpoint, freeze=True)
+        self.student_model = resnet18(self.num_classes, self.in_channels)
+        self.teacher_model = resnet18(
+            self.num_classes, self.in_channels, checkpoint_path=teacher_checkpoint, freeze=True
+        )
         self.criterion = KDLoss(temperature, alpha=0)
 
         self.train_acc = Accuracy()

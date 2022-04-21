@@ -10,7 +10,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader
-from torchvision.datasets import CIFAR100
+from torchvision.datasets import CIFAR100, FashionMNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 
 from .typing_utils import get_args, is_optional
@@ -66,7 +66,10 @@ class Experiment(LightningModule):
 
     def __init__(self):
         super().__init__()
+        self._train_data = None
         self._train_dataloader = None
+
+        self._val_data = None
         self._val_dataloader = None
 
     @property
@@ -105,8 +108,27 @@ class Experiment(LightningModule):
     def lr_scheduler(self):
         return self.hparams.get("lr_scheduler", None)
 
-    def train_dataloader(self):
-        if self._train_dataloader is None:
+    @property
+    def in_channels(self):
+        if self.dataset == "cifar100":
+            return 3
+        elif self.dataset == "fashion_mnist":
+            return 1
+        else:
+            raise ValueError(f"unsupported dataset {self.dataset}")
+
+    @property
+    def num_classes(self):
+        if self.dataset == "cifar100":
+            return 100
+        elif self.dataset == "fashion_mnist":
+            return 10
+        else:
+            raise ValueError(f"unsupported dataset {self.dataset}")
+
+    @property
+    def train_data(self):
+        if self._train_data is None:
             if self.dataset == "cifar100":
                 transform = Compose(
                     [
@@ -114,7 +136,20 @@ class Experiment(LightningModule):
                         Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
                     ]
                 )
-                train_data = CIFAR100(
+                self._train_data = CIFAR100(
+                    root="data",
+                    train=True,
+                    transform=transform,
+                    download=True,
+                )
+            elif self.dataset == "fashion_mnist":
+                transform = Compose(
+                    [
+                        ToTensor(),
+                        Normalize((0.5,), (0.5,)),
+                    ]
+                )
+                self._train_data = FashionMNIST(
                     root="data",
                     train=True,
                     transform=transform,
@@ -123,16 +158,21 @@ class Experiment(LightningModule):
             else:
                 raise ValueError(f"unsupported dataset {self.dataset}")
 
+        return self._train_data
+
+    def train_dataloader(self):
+        if self._train_dataloader is None:
             self._train_dataloader = DataLoader(
-                train_data,
+                self.train_data,
                 self.batch_size,
                 shuffle=True,
             )
 
         return self._train_dataloader
 
-    def val_dataloader(self):
-        if self._val_dataloader is None:
+    @property
+    def val_data(self):
+        if self._val_data is None:
             if self.dataset == "cifar100":
                 transform = Compose(
                     [
@@ -140,7 +180,20 @@ class Experiment(LightningModule):
                         Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
                     ]
                 )
-                val_data = CIFAR100(
+                self._val_data = CIFAR100(
+                    root="data",
+                    train=False,
+                    transform=transform,
+                    download=True,
+                )
+            elif self.dataset == "fashion_mnist":
+                transform = Compose(
+                    [
+                        ToTensor(),
+                        Normalize((0.5,), (0.5,)),
+                    ]
+                )
+                self._val_data = FashionMNIST(
                     root="data",
                     train=False,
                     transform=transform,
@@ -149,8 +202,12 @@ class Experiment(LightningModule):
             else:
                 raise ValueError(f"unsupported dataset {self.dataset}")
 
+        return self._val_data
+
+    def val_dataloader(self):
+        if self._val_dataloader is None:
             self._val_dataloader = DataLoader(
-                val_data,
+                self.val_data,
                 self.batch_size,
                 shuffle=False,
             )

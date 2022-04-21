@@ -15,6 +15,7 @@ class CrossEntropyExperiment(Experiment):
         self,
         experiment_name: str = "cross_entropy",
         wandb_project: str = "kd-cifar100-resnet18",
+        dataset: str = "cifar100",
         epochs: int = 50,
         optimizer: str = "adamw",
         lr_scheduler: str = "one_cycle_lr",
@@ -23,7 +24,7 @@ class CrossEntropyExperiment(Experiment):
     ):
         super().__init__()
         self.save_hyperparameters()
-        self.model = resnet18()
+        self.model = resnet18(self.num_classes, self.in_channels)
         self.train_acc = Accuracy()
         self.val_acc = Accuracy()
 
