@@ -55,7 +55,7 @@ class CWTCDistillExperiment(Experiment):
         self.save_hyperparameters()
 
         self.student_model = resnet18()
-        self.teacher_model = resnet18(checkpoint_path=teacher_checkpoint, freeze=True)
+        self.teacher_model = resnet18(checkpoint_path=teacher_checkpoint)
         self.criterion = CWTCLoss()
 
         self.train_acc = Accuracy()
