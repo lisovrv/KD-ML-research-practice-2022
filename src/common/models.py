@@ -45,7 +45,3 @@ def create_model(model_name: str, num_classes: int = 100, checkpoint_path: Optio
 
 def resnet18(num_classes: int = 100, checkpoint_path: Optional[str] = None):
     return create_model("resnet18", num_classes, checkpoint_path)
-
-
-def resnet50(num_classes: int = 100, checkpoint_path: Optional[str] = None):
-    return create_model("resnet50", num_classes, checkpoint_path)
