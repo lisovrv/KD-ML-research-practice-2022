@@ -3,27 +3,29 @@ import sys
 
 import torch.nn.functional as F
 
-# For imports from common
-# TODO: is there a better way?
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))  # noqa
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
-from common import Accuracy, Experiment, resnet18  # noqa: E402
+from common import Accuracy, Experiment, create_model  # noqa: E402
 
 
 class CrossEntropyExperiment(Experiment):
     def __init__(
         self,
-        experiment_name: str = "cross_entropy",
-        wandb_project: str = "kd-cifar100-resnet18",
+        experiment_name: str = "cross-entropy-training",
+        wandb_project: str = "kd-cifar100-ensemble",
         epochs: int = 50,
         optimizer: str = "adamw",
         lr_scheduler: str = "one_cycle_lr",
-        lr: float = 0.001,
-        weight_decay: float = 0.01,
+        lr: float = 0.015,
+        weight_decay: float = 0.18,
+        batch_size: int = 256,
+        log_every_n_steps: int = 30,
+        model_name: str = "resnet18",
     ):
         super().__init__()
         self.save_hyperparameters()
-        self.model = resnet18()
+        self.model = create_model(model_name)
+
         self.train_acc = Accuracy()
         self.val_acc = Accuracy()
 
