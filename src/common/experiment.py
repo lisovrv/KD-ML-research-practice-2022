@@ -78,6 +78,10 @@ class Experiment(LightningModule):
         return self.hparams.get("wandb_project", "project")
 
     @property
+    def log_every_n_steps(self):
+        return self.hparams.get("log_every_n_steps", 5)
+
+    @property
     def dataset(self):
         return self.hparams.get("dataset", "cifar100")
 
@@ -192,7 +196,7 @@ class Experiment(LightningModule):
         experiment = cls(**vars(args))
         experiment.run()
 
-    def run(self, log_every_n_steps: int = 5):
+    def run(self):
         if os.path.exists(self.artifacts_path):
             shutil.rmtree(self.artifacts_path)
             os.mkdir(self.artifacts_path)
@@ -212,7 +216,7 @@ class Experiment(LightningModule):
             auto_lr_find=True,
             max_epochs=self.epochs,
             callbacks=[checkpoint_callback],
-            log_every_n_steps=log_every_n_steps,
+            log_every_n_steps=self.log_every_n_steps,
         )
         trainer.fit(self)
         wandb.finish()
