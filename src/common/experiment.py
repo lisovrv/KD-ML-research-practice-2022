@@ -5,13 +5,14 @@ from inspect import getfullargspec
 from typing import Any, Type
 
 import torch
-import wandb
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR100
 from torchvision.transforms import Compose, Normalize, ToTensor
+
+import wandb
 
 from .typing_utils import get_args, is_optional
 
