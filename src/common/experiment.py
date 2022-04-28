@@ -241,8 +241,7 @@ class Experiment(LightningModule):
             raise ValueError(f"{type(self).__name__} has none of .model, .student_model and .model_attr attributes")
 
         # First, save the current state.
-        model = getattr(self, model_attr)
-        torch.save(model.state_dict(), os.path.join(self.artifacts_path, "last.ckpt"))
+        trainer.save_checkpoint(os.path.join(self.artifacts_path, "last.ckpt"))
 
         # Now go over all checkpoints and save model state for those.
         for ckpt in os.scandir(self.artifacts_path):
