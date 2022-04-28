@@ -5,14 +5,13 @@ from inspect import getfullargspec
 from typing import Any, Type
 
 import torch
+import wandb
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR100
 from torchvision.transforms import Compose, Normalize, ToTensor
-
-import wandb
 
 from .typing_utils import get_args, is_optional
 
@@ -207,14 +206,12 @@ class Experiment(LightningModule):
             self.artifacts_path,
             "{epoch}-{train_acc:.2f}-{val_acc:.2f}",
             monitor="val_acc",
-            save_weights_only=True,
             mode="max",
             save_top_k=10,
         )
         trainer = Trainer(
             logger,
             gpus=int(torch.cuda.is_available()),
-            auto_lr_find=True,
             max_epochs=self.epochs,
             callbacks=[checkpoint_callback],
             log_every_n_steps=self.log_every_n_steps,
@@ -243,6 +240,11 @@ class Experiment(LightningModule):
         if model_attr is None:
             raise ValueError(f"{type(self).__name__} has none of .model, .student_model and .model_attr attributes")
 
+        # First, save the current state.
+        model = getattr(self, model_attr)
+        torch.save(model.state_dict(), os.path.join(self.artifacts_path, "last.ckpt"))
+
+        # Now go over all checkpoints and save model state for those.
         for ckpt in os.scandir(self.artifacts_path):
             model_state = type(self).load_from_checkpoint(ckpt.path)
             model = getattr(model_state, model_attr)
