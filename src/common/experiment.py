@@ -205,7 +205,6 @@ class Experiment(LightningModule):
         checkpoint_callback = ModelCheckpoint(
             self.artifacts_path,
             "{epoch}-{train_acc:.2f}-{val_acc:.2f}",
-            save_last=True,
             monitor="val_acc",
             mode="max",
             save_top_k=10,
@@ -241,6 +240,11 @@ class Experiment(LightningModule):
         if model_attr is None:
             raise ValueError(f"{type(self).__name__} has none of .model, .student_model and .model_attr attributes")
 
+        # First, save the current state.
+        model = getattr(self, model_attr)
+        torch.save(model.state_dict(), os.path.join(self.artifacts_path, "last.ckpt"))
+
+        # Now go over all checkpoints and save model state for those.
         for ckpt in os.scandir(self.artifacts_path):
             model_state = type(self).load_from_checkpoint(ckpt.path)
             model = getattr(model_state, model_attr)
