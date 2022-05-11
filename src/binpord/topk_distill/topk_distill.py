@@ -19,12 +19,13 @@ class TOPKLoss:
     Namely, we can try and use label smoothing with the target probability given by the teacher model.
     """
 
-    def __init__(self, k: int = 10):
+    def __init__(self, k: int = 10, temperature: float = 4.0):
         self.k = k
+        self.temperature = temperature
 
     def __call__(self, student_output: torch.Tensor, teacher_output: torch.Tensor):
         batch_size, n_classes = teacher_output.size()
-        teacher_probs = torch.softmax(teacher_output, dim=1)
+        teacher_probs = torch.softmax(teacher_output / self.temperature, dim=1)
 
         teacher_argsort = torch.argsort(teacher_probs, dim=1)
         unsqueezed_range = torch.arange(batch_size)[:, None]
@@ -35,7 +36,7 @@ class TOPKLoss:
         target_probs = target_probs.repeat(1, n_classes)
         target_probs[unsqueezed_range, topk_indices] = teacher_probs[unsqueezed_range, topk_indices]
 
-        student_logprobs = torch.log_softmax(student_output, dim=1)
+        student_logprobs = torch.log_softmax(student_output / self.temperature, dim=1)
         return -(target_probs * student_logprobs).sum(dim=1).mean()
 
 
@@ -47,6 +48,7 @@ class TOPKDistillExperiment(Experiment):
         log_every_n_steps: int = 5,
         teacher_checkpoint: Optional[str] = None,
         k: int = 10,
+        temperature: float = 4.0,
         batch_size: int = 1024,
         epochs: int = 50,
         optimizer: str = "adamw",
@@ -59,7 +61,7 @@ class TOPKDistillExperiment(Experiment):
 
         self.student_model = resnet18()
         self.teacher_model = resnet18(checkpoint_path=teacher_checkpoint)
-        self.criterion = TOPKLoss(k)
+        self.criterion = TOPKLoss(k, temperature)
 
         self.train_acc = Accuracy()
         self.val_acc = Accuracy()
