@@ -19,17 +19,19 @@ class TALSLoss:
     Namely, we can try and use label smoothing with the target probability given by the teacher model.
     """
 
-    @staticmethod
-    def __call__(student_output: torch.Tensor, teacher_output: torch.Tensor, targets: torch.Tensor):
+    def __init__(self, temperature: float = 4):
+        self.temperature = temperature
+
+    def __call__(self, student_output: torch.Tensor, teacher_output: torch.Tensor, targets: torch.Tensor):
         batch_size, n_classes = student_output.size()
-        teacher_probs = torch.softmax(teacher_output, dim=1)
+        teacher_probs = torch.softmax(teacher_output / self.temperature, dim=1)
         teacher_probs = teacher_probs[range(batch_size), targets]
         smooth_probs = (1 - teacher_probs) / (n_classes - 1)
 
         target_probs = smooth_probs[:, None].repeat(1, n_classes)
         target_probs[range(batch_size), targets] = teacher_probs
 
-        student_logprobs = torch.log_softmax(student_output, dim=1)
+        student_logprobs = torch.log_softmax(student_output / self.temperature, dim=1)
         return -(target_probs * student_logprobs).sum(dim=1).mean()
 
 
@@ -40,6 +42,7 @@ class TALSDistillExperiment(Experiment):
         wandb_project: str = "kd-cifar100-resnet18",
         log_every_n_steps: int = 5,
         teacher_checkpoint: Optional[str] = None,
+        temperature: float = 4.0,
         batch_size: int = 1024,
         epochs: int = 50,
         optimizer: str = "adamw",
