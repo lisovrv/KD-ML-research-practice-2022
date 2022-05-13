@@ -32,7 +32,7 @@ class TALSLoss:
         target_probs[range(batch_size), targets] = teacher_probs
 
         student_logprobs = torch.log_softmax(student_output / self.temperature, dim=1)
-        return -(target_probs * student_logprobs).sum(dim=1).mean()
+        return -(self.temperature**2) * (target_probs * student_logprobs).sum() / batch_size
 
 
 class TALSDistillExperiment(Experiment):
