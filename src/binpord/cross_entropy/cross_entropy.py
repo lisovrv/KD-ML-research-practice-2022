@@ -1,7 +1,7 @@
 import os
 import sys
 
-import torch.nn.functional as F
+import torch.nn as nn
 
 # For imports from common
 # TODO: is there a better way?
@@ -15,6 +15,7 @@ class CrossEntropyExperiment(Experiment):
         self,
         experiment_name: str = "cross_entropy",
         wandb_project: str = "kd-cifar100-resnet18",
+        label_smoothing: float = 0.0,
         log_every_n_steps: int = 20,
         epochs: int = 30,
         batch_size: int = 256,
@@ -26,6 +27,7 @@ class CrossEntropyExperiment(Experiment):
         super().__init__()
         self.save_hyperparameters()
         self.model = resnet18()
+        self.criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
         self.train_acc = Accuracy()
         self.val_acc = Accuracy()
 
@@ -36,7 +38,7 @@ class CrossEntropyExperiment(Experiment):
         image, target = batch
         output = self.model(image)
 
-        loss = F.cross_entropy(output, target)
+        loss = self.criterion(output, target)
         self.log("loss", loss)
         self.log("train_loss", loss, on_step=False, on_epoch=True)
 
@@ -48,7 +50,7 @@ class CrossEntropyExperiment(Experiment):
         image, target = batch
         output = self(image)
 
-        loss = F.cross_entropy(output, target)
+        loss = self.criterion(output, target)
         self.log("val_loss", loss)
 
         self.val_acc(output, target)
