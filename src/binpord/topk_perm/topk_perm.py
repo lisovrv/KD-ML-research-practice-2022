@@ -52,7 +52,7 @@ class TopKPermLoss:
 class TopKPermExperiment(Experiment):
     def __init__(
         self,
-        experiment_name: str = "dkpp_distill",
+        experiment_name: str = "topk_perm",
         wandb_project: str = "kd-cifar100-resnet18",
         log_every_n_steps: int = 20,
         temperature: float = 4.0,
