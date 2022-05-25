@@ -18,6 +18,7 @@ class HintonDistillExperiment(Experiment):
         wandb_project: str = "kd-cifar100-resnet18",
         log_every_n_steps: int = 20,
         temperature: float = 4.0,
+        student_checkpoint: Optional[str] = None,
         teacher_checkpoint: Optional[str] = None,
         batch_size: int = 256,
         epochs: int = 30,
@@ -29,7 +30,12 @@ class HintonDistillExperiment(Experiment):
         super().__init__()
         self.save_hyperparameters()
 
-        self.student_model = resnet18()
+        if student_checkpoint is not None:
+            self.student_model = resnet18(checkpoint_path=student_checkpoint)
+            self.student_model.unfreeze()
+        else:
+            self.student_model = resnet18()
+
         self.teacher_model = resnet18(checkpoint_path=teacher_checkpoint)
         self.criterion = KDLoss(temperature, alpha=0)
 
