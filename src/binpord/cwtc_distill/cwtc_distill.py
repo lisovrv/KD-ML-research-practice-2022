@@ -45,15 +45,15 @@ class CWTCDistillExperiment(Experiment):
         self,
         experiment_name: str = "cwtc_distill",
         wandb_project: str = "kd-cifar100-resnet18",
-        log_every_n_steps: int = 5,
+        log_every_n_steps: int = 20,
         teacher_checkpoint: Optional[str] = None,
         temperature: float = 4.0,
-        batch_size: int = 1024,
-        epochs: int = 50,
+        batch_size: int = 256,
+        epochs: int = 30,
         optimizer: str = "adamw",
         lr_scheduler: str = "one_cycle_lr",
-        lr: float = 0.001,
-        weight_decay: float = 0.01,
+        lr: float = 0.015,
+        weight_decay: float = 0.18,
     ):
         super().__init__()
         self.save_hyperparameters()
