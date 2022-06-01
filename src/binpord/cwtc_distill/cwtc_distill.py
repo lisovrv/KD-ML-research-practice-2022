@@ -21,7 +21,8 @@ class CWTCLoss:
     This is accompanying experiment to the CWTM. More on motivation can be found there.
     """
 
-    def __init__(self):
+    def __init__(self, temperature: float = 4.0):
+        self.temperature = temperature
         self.cross_entropy = nn.CrossEntropyLoss(reduction="none")
 
     def __call__(
@@ -31,7 +32,7 @@ class CWTCLoss:
         target: torch.Tensor,
     ):
         batch_size = target.size(0)
-        element_wise_loss = self.cross_entropy(student_output, target)
+        element_wise_loss = self.cross_entropy(student_output / self.temperature, target)
 
         teacher_probabilities = torch.softmax(teacher_output, dim=1)
         teacher_confidences = teacher_probabilities[range(batch_size), target]
@@ -46,6 +47,7 @@ class CWTCDistillExperiment(Experiment):
         wandb_project: str = "kd-cifar100-resnet18",
         log_every_n_steps: int = 5,
         teacher_checkpoint: Optional[str] = None,
+        temperature: float = 4.0,
         batch_size: int = 1024,
         epochs: int = 50,
         optimizer: str = "adamw",
@@ -58,7 +60,7 @@ class CWTCDistillExperiment(Experiment):
 
         self.student_model = resnet18()
         self.teacher_model = resnet18(checkpoint_path=teacher_checkpoint)
-        self.criterion = CWTCLoss()
+        self.criterion = CWTCLoss(temperature)
 
         self.train_acc = Accuracy()
         self.val_acc = Accuracy()
